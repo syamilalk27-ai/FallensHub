@@ -1,1 +1,25 @@
-(loadstring or load)(game:HttpGet("https://www.keyforge.win/v1/load/cmqud3edm000104i5iwsdz0ko?e=1&script=cmqudb743000004jlms1i7frv" .. "&_cb=" .. tostring(os.clock()) .. "-" .. tostring(math.random(0, 2147483647)), true))()
+local games = {
+    [10200395747] = "https://pastefy.app/lt0M0Rxm/raw",
+    [6739698191] = "https://pastefy.app/wikuYFQO/raw"
+}
+
+local StarterGui = game:GetService("StarterGui")
+local gameId = game.GameId
+
+local function notify(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 5
+        })
+    end)
+end
+
+if games[gameId] then
+    notify("Fallens Notification", "Supported Games! Loadinggg....", 5)
+    task.wait(1)
+    loadstring(game:HttpGet(games[gameId]))()
+else
+    notify("Fallens Notification", "Unsupport Games! Sorry....", 5)
+end
