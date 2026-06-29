@@ -7955,6 +7955,11 @@ function Library:CreateWindow(WindowInfo)
     local CurrentTabInfo
     local CurrentTabLabel
     local CurrentTabDescription
+    local AccentBar
+    local AccentBarGlow
+    local HeaderTabLabel
+    local AccentBarHue = 0
+    local AccentBarConnection
     local ResizeButton
     local Tabs
     local Container
@@ -7997,107 +8002,42 @@ function Library:CreateWindow(WindowInfo)
             })
         )
         Library:AddOutline(MainFrame)
-        Library:MakeLine(MainFrame, {
+        --// Rainbow Glow Accent Bar \\--
+        AccentBar = New("Frame", {
+            BackgroundColor3 = Library.Scheme.AccentColor,
+            BorderSizePixel = 0,
             Position = UDim2.fromOffset(0, 48),
-            Size = UDim2.new(1, 0, 0, 1),
+            Size = UDim2.new(1, 0, 0, 2),
+            ZIndex = 5,
+            Parent = MainFrame,
         })
 
-        --// Glow Accent Bar (animated, sits above the TopBar/header) \\--
-        do
-            local GlowBarHeight = 4
+        AccentBarGlow = New("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = Library.Scheme.AccentColor,
+            BorderSizePixel = 0,
+            Position = UDim2.new(0.5, 0, 1, 0),
+            Size = UDim2.new(1, 0, 0, 8),
+            ZIndex = 4,
+            Parent = AccentBar,
+        })
+        New("UIGradient", {
+            Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(0.5, 0.4),
+                NumberSequenceKeypoint.new(1, 1),
+            }),
+            Rotation = 90,
+            Parent = AccentBarGlow,
+        })
 
-            local GlowBarHolder = New("Frame", {
-                Name = "GlowAccentBar",
-                BackgroundTransparency = 1,
-                ClipsDescendants = true,
-                Position = UDim2.fromOffset(0, 0),
-                Size = UDim2.new(1, 0, 0, GlowBarHeight),
-                ZIndex = 5,
-                Parent = MainFrame,
-            })
-            table.insert(
-                Library.Corners,
-                New("UICorner", {
-                    CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
-                    Parent = GlowBarHolder,
-                })
-            )
-
-            -- Soft static base so the bar always reads as an accent line, even before the sweep passes
-            local GlowBarBase = New("Frame", {
-                BackgroundColor3 = "AccentColor",
-                BackgroundTransparency = 0.55,
-                Size = UDim2.fromScale(1, 1),
-                ZIndex = 5,
-                Parent = GlowBarHolder,
-            })
-
-            -- Bright sweeping highlight that travels across the bar to sell the "glow" motion
-            local GlowBarSweep = New("Frame", {
-                BackgroundColor3 = "AccentColor",
-                BackgroundTransparency = 0,
-                Size = UDim2.new(0, 140, 1, 0),
-                ZIndex = 6,
-                Parent = GlowBarHolder,
-            })
-            New("UIGradient", {
-                Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0, 1),
-                    NumberSequenceKeypoint.new(0.5, 0.1),
-                    NumberSequenceKeypoint.new(1, 1),
-                }),
-                Parent = GlowBarSweep,
-            })
-
-            -- Glow "bloom" hovering just above/below the bar for a soft light-bleed effect
-            local GlowBarBloom = New("Frame", {
-                AnchorPoint = Vector2.new(0, 0.5),
-                BackgroundColor3 = "AccentColor",
-                BackgroundTransparency = 0.35,
-                Position = UDim2.fromScale(0, 0.5),
-                Size = UDim2.new(1, 0, 0, GlowBarHeight),
-                ZIndex = 4,
-                Parent = MainFrame,
-            })
-            New("UIGradient", {
-                Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0, 1),
-                    NumberSequenceKeypoint.new(0.5, 0),
-                    NumberSequenceKeypoint.new(1, 1),
-                }),
-                Parent = GlowBarBloom,
-            })
-            table.insert(
-                Library.Corners,
-                New("UICorner", {
-                    CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
-                    Parent = GlowBarBloom,
-                })
-            )
-
-            -- Animate: sweep travels left-to-right on a loop, bloom pulses for a breathing glow
-            local SweepTravelDistance = 140
-            local GlowClock = 0
-            local SweepDuration = 2.4 -- seconds for a full left-to-right pass
-            local PulseDuration = 1.8 -- seconds for one breathe in/out cycle
-
-            Library:GiveSignal(RunService.Heartbeat:Connect(function(DeltaTime)
-                if not GlowBarHolder.Parent then
-                    return
-                end
-
-                GlowClock += DeltaTime
-
-                local HolderWidth = GlowBarHolder.AbsoluteSize.X
-                local SweepAlpha = (GlowClock % SweepDuration) / SweepDuration
-                local SweepX = -SweepTravelDistance + (SweepAlpha * (HolderWidth + SweepTravelDistance * 2))
-                GlowBarSweep.Position = UDim2.fromOffset(SweepX, 0)
-
-                local PulseAlpha = (math.sin((GlowClock / PulseDuration) * math.pi * 2) + 1) / 2
-                GlowBarBloom.BackgroundTransparency = 0.55 - (PulseAlpha * 0.3)
-                GlowBarBase.BackgroundTransparency = 0.65 - (PulseAlpha * 0.2)
-            end))
-        end
+        -- Animate rainbow hue on the accent bar
+        AccentBarConnection = RunService.Heartbeat:Connect(function(dt)
+            AccentBarHue = (AccentBarHue + dt * 0.12) % 1
+            local rainbow = Color3.fromHSV(AccentBarHue, 0.85, 1)
+            AccentBar.BackgroundColor3 = rainbow
+            AccentBarGlow.BackgroundColor3 = rainbow
+        end)
 
         DividerLine = New("Frame", {
             BackgroundColor3 = "OutlineColor",
@@ -8164,6 +8104,23 @@ function Library:CreateWindow(WindowInfo)
                 Size = WindowInfo.IconSize,
                 Parent = TitleHolder,
             })
+            --// Logo Glow Animation \\--
+            local LogoGlowStroke = New("UIStroke", {
+                ApplyStrokeMode = Enum.ApplyStrokeMode.Image,
+                Color = Library.Scheme.AccentColor,
+                Thickness = 1.5,
+                Transparency = 0.3,
+                Parent = WindowIcon,
+            })
+            local LogoGlowHue = 0
+            RunService.Heartbeat:Connect(function(dt)
+                LogoGlowHue = (LogoGlowHue + dt * 0.12) % 1
+                local c = Color3.fromHSV(LogoGlowHue, 0.85, 1)
+                LogoGlowStroke.Color = c
+                -- pulse transparency
+                local pulse = 0.2 + 0.3 * math.abs(math.sin(tick() * 2))
+                LogoGlowStroke.Transparency = pulse
+            end)
         else
             WindowIcon = New("TextLabel", {
                 BackgroundTransparency = 1,
@@ -8253,6 +8210,36 @@ function Library:CreateWindow(WindowInfo)
             TextXAlignment = Enum.TextXAlignment.Left,
             TextTransparency = 0.5,
             Parent = CurrentTabInfo,
+        })
+
+        --// Header Tab Label (shows active tab name next to search bar) \\--
+        HeaderTabLabel = New("TextLabel", {
+            AnchorPoint = Vector2.new(0, 0.5),
+            AutomaticSize = Enum.AutomaticSize.X,
+            BackgroundColor3 = "MainColor",
+            Size = UDim2.fromOffset(0, 22),
+            Text = "Tab",
+            TextSize = 13,
+            TextTransparency = 0.3,
+            Visible = false,
+            ZIndex = 3,
+            Parent = RightWrapper,
+        })
+        New("UIPadding", {
+            PaddingBottom = UDim.new(0, 4),
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, 8),
+            PaddingTop = UDim.new(0, 4),
+            Parent = HeaderTabLabel,
+        })
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 4),
+            Parent = HeaderTabLabel,
+        })
+        New("UIStroke", {
+            Color = "OutlineColor",
+            Transparency = 0.5,
+            Parent = HeaderTabLabel,
         })
 
         SearchBox = New("TextBox", {
@@ -8567,12 +8554,22 @@ function Library:CreateWindow(WindowInfo)
             SearchBox.Size = UDim2.fromScale(0.5, 1)
         end
         CurrentTabInfo.Visible = true
+
+        -- Update header tab label (shown next to search bar)
+        if HeaderTabLabel then
+            HeaderTabLabel.Text = Name
+            HeaderTabLabel.Visible = true
+        end
     end
 
     function Window:HideTabInfo()
         CurrentTabInfo.Visible = false
         if IsDefaultSearchbarSize then
             SearchBox.Size = UDim2.fromScale(1, 1)
+        end
+        -- Hide header tab label
+        if HeaderTabLabel then
+            HeaderTabLabel.Visible = false
         end
     end
 
@@ -9521,6 +9518,12 @@ function Library:CreateWindow(WindowInfo)
 
             if Description then
                 Window:ShowTabInfo(Name, Description)
+            else
+                -- Always show tab name in header label even without description
+                if HeaderTabLabel then
+                    HeaderTabLabel.Text = Name
+                    HeaderTabLabel.Visible = true
+                end
             end
 
             TabContainer.Visible = true
@@ -9853,6 +9856,11 @@ function Library:CreateWindow(WindowInfo)
 
             if Description then
                 Window:ShowTabInfo(Name, Description)
+            else
+                if HeaderTabLabel then
+                    HeaderTabLabel.Text = Name
+                    HeaderTabLabel.Visible = true
+                end
             end
 
             Tab:RefreshSides()
