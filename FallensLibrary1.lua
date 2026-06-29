@@ -8004,7 +8004,7 @@ function Library:CreateWindow(WindowInfo)
 
         --// Glow Accent Bar (animated, sits above the TopBar/header) \\--
         do
-            local GlowBarHeight = 2
+            local GlowBarHeight = 4
 
             local GlowBarHolder = New("Frame", {
                 Name = "GlowAccentBar",
