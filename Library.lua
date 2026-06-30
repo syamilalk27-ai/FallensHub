@@ -209,6 +209,11 @@ local Library = {
     ShowToggleFrameInKeybinds = true,
     NotifyOnError = false,
 
+    ShowAccentBar = true,
+    AccentBarRainbow = true,
+    AccentBarSpeed = 0.15,
+    AccentBarGlowSize = 18,
+
     CantDragForced = false,
     DraggableElements = {},
 
@@ -8034,6 +8039,73 @@ function Library:CreateWindow(WindowInfo)
 
         if WindowInfo.Center then
             MainFrame.Position = UDim2.new(0.5, -MainFrame.Size.X.Offset / 2, 0.5, -MainFrame.Size.Y.Offset / 2)
+        end
+
+        --// Accent Glow Bar \\-
+        local AccentBarHolder = New("Frame", {
+            BackgroundTransparency = 1,
+            ClipsDescendants = true,
+            Size = UDim2.new(1, 0, 0, math.max(3, Library.AccentBarGlowSize)),
+            Visible = Library.ShowAccentBar,
+            ZIndex = 5,
+            Parent = MainFrame,
+        })
+
+        local AccentBarGlow = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundTransparency = 1,
+            Image = "rbxasset://textures/ui/Glow.png",
+            ImageColor3 = Library.Scheme.AccentColor,
+            ImageTransparency = 0.35,
+            Position = UDim2.new(0.5, 0, 0, -Library.AccentBarGlowSize),
+            ScaleType = Enum.ScaleType.Stretch,
+            Size = UDim2.new(1.5, 0, 0, Library.AccentBarGlowSize * 3),
+            ZIndex = 4,
+            Parent = AccentBarHolder,
+        })
+
+        local AccentBar = New("Frame", {
+            AnchorPoint = Vector2.new(0, 0),
+            BackgroundColor3 = Library.Scheme.AccentColor,
+            BorderSizePixel = 0,
+            Position = UDim2.fromScale(0, 0),
+            Size = UDim2.new(1, 0, 0, 2),
+            ZIndex = 6,
+            Parent = AccentBarHolder,
+        })
+
+        local AccentBarGradient = New("UIGradient", {
+            Color = ColorSequence.new(Library.Scheme.AccentColor),
+            Parent = AccentBar,
+        })
+
+        do
+            local HueOffset = 0
+            Library:GiveSignal(RunService.RenderStepped:Connect(function(DeltaTime)
+                if not Library.ShowAccentBar then
+                    AccentBarHolder.Visible = false
+                    return
+                end
+                AccentBarHolder.Visible = true
+
+                if Library.AccentBarRainbow then
+                    HueOffset = (HueOffset + DeltaTime * Library.AccentBarSpeed) % 1
+
+                    local Keypoints = {}
+                    for Index = 0, 8 do
+                        local Alpha = Index / 8
+                        local Hue = (HueOffset + Alpha) % 1
+                        table.insert(Keypoints, ColorSequenceKeypoint.new(Alpha, Color3.fromHSV(Hue, 0.85, 1)))
+                    end
+
+                    local Sequence = ColorSequence.new(Keypoints)
+                    AccentBarGradient.Color = Sequence
+                    AccentBarGlow.ImageColor3 = Color3.fromHSV(HueOffset, 0.85, 1)
+                else
+                    AccentBarGradient.Color = ColorSequence.new(Library.Scheme.AccentColor)
+                    AccentBarGlow.ImageColor3 = Library.Scheme.AccentColor
+                end
+            end))
         end
 
         --// Top Bar \\-
